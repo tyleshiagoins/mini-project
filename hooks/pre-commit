@@ -1,0 +1,9 @@
+#!/bin/sh
+
+echo "Running Flake8..."
+flake8 greeting.py test_greeting.py || exit 1
+
+echo "Running PyTest..."
+pytest || exit 1
+
+echo "All checks passed."
