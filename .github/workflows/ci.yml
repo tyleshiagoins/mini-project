@@ -14,6 +14,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: setup python
       uses: actions/setup-python@v5
@@ -23,10 +25,19 @@ jobs:
     - name: install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pytest
+        pip install pytest flake8 pytest-cov
+
+    - name: linting standards
+      run: flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
 
     - name: run tests
-      run: pytest test_greeting.py
+      run: pytest --cov=. --cov-fail-under=80 test_greeting.py
 
-    - name: build 
+    - name: build
       run: python -m py_compile greeting.py
+
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
