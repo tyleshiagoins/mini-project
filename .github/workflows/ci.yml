@@ -29,4 +29,4 @@ jobs:
       run: pytest test_greeting.py
 
     - name: build 
-      run: echo "done"
+      run: python -m py_compile greeting.py
