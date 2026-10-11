@@ -25,7 +25,7 @@ jobs:
     - name: install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pytest flake8 pytest-cov
+        pip install --only-binary :all: pytest==8.0.0 flake8==7.0.0 pytest-cov==4.1.0
 
     - name: linting standards
       run: flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
@@ -37,7 +37,7 @@ jobs:
       run: python -m py_compile greeting.py
 
     - name: SonarCloud Scan
-      uses: SonarSource/sonarcloud-github-action@master
+      uses: SonarSource/sonarcloud-github-action@49e6cd3b187936a73b8280d59ffd9da69df63ec9
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
