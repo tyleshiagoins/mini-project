@@ -31,7 +31,7 @@ jobs:
       run: flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
 
     - name: run tests
-      run: pytest --cov=. --cov-fail-under=80 test_greeting.py
+      run: pytest --cov=greeting --cov-report=xml:coverage.xml --cov-report=term-missing --cov-fail-under=80 test_greeting.py
 
     - name: build
       run: python -m py_compile greeting.py
@@ -39,5 +39,4 @@ jobs:
     - name: SonarCloud Scan
       uses: SonarSource/sonarqube-scan-action@299e4b793aaa83bf2aba7c9c14bedbb485688ec4
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
