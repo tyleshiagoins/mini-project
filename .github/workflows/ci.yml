@@ -30,7 +30,7 @@ jobs:
       run: flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
 
     - name: run tests
-      run: pytest --cov=greeting --cov-report=xml:coverage.xml --cov-report=term-missing --cov-fail-under=80
+      run: pytest --cov=greeting --cov=task-tracker --cov-report=xml:coverage.xml --cov-report=term-missing --cov-fail-under=80
 
     - name: build
       run: python -m compileall -q .
