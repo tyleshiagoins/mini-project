@@ -24,7 +24,7 @@ Task tracker is a simple web application developed using python, flask, HTML, CS
 - **Delete Tasks:** Remove tasks from the list using the delete option.
 - **Empty List Message:** Displays a message when no tasks are present.
 
-Tasks are stored temporarily in the browser and will be cleared when the page is refreshed or closed.
+Tasks are stored temporarily in the browser and will be remembered when the page is refreshed or closed.
 
 ## Technologies Used
 
