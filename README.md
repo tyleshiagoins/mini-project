@@ -1,49 +1,62 @@
 [![ci project](https://github.com/tyleshiagoins/mini-project/actions/workflows/ci.yml/badge.svg)](https://github.com/tyleshiagoins/mini-project/actions/workflows/ci.yml)
 
-# Task Tracker - Midterm 
+# Task Tracker
 
 ## Overview
-This project is a simple web application used to track tasks and was created using Python and Flask. The project also includes work from previous mini-projects.
 
-## Tools Used
-- Python and Flask
-- Git and GitHub
-- GitHub Actions
-- pytest
-- Flake8
-- SonarCloud
+Task tracker is a simple web application developed using python, flask, HTML, CSS, and javascript. It lets users to create a list of tasks through with a simple interface.
+
+
+## Features
+
+- **Add Tasks:** Enter a task and click the add task to add it to the list.
+- **View Tasks:** All added tasks appear in the task list section.
+- **Delete Tasks:** Remove tasks from the list using the delete option.
+- **Empty List Message:** Displays a message when no tasks are present.
+
+Tasks are stored temporarily in the browser and will be cleared when the page is refreshed or closed.
+
+## Technologies Used
+
+- Python and Flask 
+- Git and GitHub 
+- HTML and CSS — structure and styling
+- JavaScript — functionality
+- GitHub Actions — automated testing
+- pytest and Flake8 — testing and code quality
+- SonarCloud — security analysis
 
 ## How to Run the Application
 
-These are the required packages
+**1. Install the required packages**
+
+Open a terminal in the project's main directory and run:
 
 ```bash
-pip install -r task-tracker/requirements.txt
+python -m pip install -r task-tracker/requirements.txt
 ```
 
-Start the application in the terminal with this line
+**2. Start the application**
 
 ```bash
 python task-tracker/app.py
 ```
 
-Copy and open the link to view the application
+**3. Open the website**
 
-## Branching and Pull Requests
-The main branch is used for the main version of the project, and new or test changes are made on the feature/midterm branch before being added to main.
+Open the given address by doing Ctrl + click, and the application will be ready to use.
 
-## GitHub Actions
-GitHub Actions is used to automatically check the project whenever code is pushed or a pull request is started.
 
-The checks will install the packages, check code formatting, makes sure test coverage is at least 80%, checks that the Python files compile correctly, and uses SonarCloud to check code quality.
+## Testing and Code Quality
 
-## Testing
-The project includes tests for the original greeting program and the Task Tracker homepage.
+The project uses pytest to test the python application and Flake8 to check coding standards.
 
-Tests can be ran using the following command
+To run the automated tests run this command:
 
 ```bash
 python -m pytest --cov=greeting --cov=task-tracker --cov-report=term-missing --cov-fail-under=80
 ```
 
-The latest local test run passed both tests with 93.33% total coverage.
+GitHub actions automatically runs checks when code is pushed or a pull request is opened. These checks include code formatting and SonarCloud security analysis.
+
+The project uses a minimum test coverage requirement of 80%.
