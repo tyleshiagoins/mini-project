@@ -71,6 +71,20 @@ def home():
         </main>
 
         <script>
+            // load previously saved tasks when the page opens
+            window.onload = function() {
+                const savedTasks = JSON.parse(
+                    localStorage.getItem("tasks")
+                ) || [];
+
+                for (const taskDescription of savedTasks) {
+                    displayTask(taskDescription);
+                }
+
+                updateEmptyMessage();
+            };
+
+            // add a task
             function addTask() {
                 const taskInput = document.getElementById("taskInput");
                 const taskDescription = taskInput.value.trim();
@@ -79,6 +93,14 @@ def home():
                     return;
                 }
 
+                displayTask(taskDescription);
+                saveTasks();
+
+                taskInput.value = "";
+            }
+
+            // display task and delete
+            function displayTask(taskDescription) {
                 const taskList = document.getElementById("taskList");
                 const newTask = document.createElement("li");
 
@@ -91,17 +113,36 @@ def home():
 
                 deleteButton.onclick = function() {
                     newTask.remove();
-                    updateEmptyMessage();
+                    saveTasks();
                 };
 
                 newTask.appendChild(taskText);
                 newTask.appendChild(deleteButton);
                 taskList.appendChild(newTask);
 
-                taskInput.value = "";
                 updateEmptyMessage();
             }
 
+            // remember input
+            function saveTasks() {
+                const taskList = document.getElementById("taskList");
+                const savedTasks = [];
+
+                for (const task of taskList.children) {
+                    savedTasks.push(
+                        task.querySelector("span").textContent
+                    );
+                }
+
+                localStorage.setItem(
+                    "tasks",
+                    JSON.stringify(savedTasks)
+                );
+
+                updateEmptyMessage();
+            }
+
+            //  empty message when there's no tasks.
             function updateEmptyMessage() {
                 const taskList = document.getElementById("taskList");
                 const emptyMessage = document.getElementById("emptyMessage");
