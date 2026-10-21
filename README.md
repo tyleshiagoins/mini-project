@@ -2,6 +2,16 @@
 
 # Task Tracker
 
+## Project Structure
+
+The repository is organized to separate the task tracker application from supporting files and tools. The following is the responsibilities of the files for this project:
+
+- **task-tracker/** — Contains the main application (`app.py`), automated tests (`test_app.py`), and dependency files.
+- **.github/workflows/** — Contains the GitHub actions configuration for automated testing.
+- **sonar-project.properties** — Contains the SonarCloud analysis configuration.
+
+The main entry point is `task-tracker/app.py`, which starts the flask web application.
+
 ## Overview
 
 Task tracker is a simple web application developed using python, flask, HTML, CSS, and javascript. It lets users to create a list of tasks through with a simple interface.
@@ -30,13 +40,15 @@ Tasks are stored temporarily in the browser and will be cleared when the page is
 
 **1. Install the required packages**
 
-Open a terminal in the project's main directory and run:
+Open a terminal in the project's main directory and run
 
 ```bash
 python -m pip install -r task-tracker/requirements.txt
 ```
 
 **2. Start the application**
+
+After installing the required packages, run the following command. This starts the flask server to run the task tracker locally.
 
 ```bash
 python task-tracker/app.py
@@ -45,6 +57,7 @@ python task-tracker/app.py
 **3. Open the website**
 
 Open the given address by doing Ctrl + click, and the application will be ready to use.
+When finished, return to the terminal and press Ctrl + C to stop the server.
 
 
 ## Testing and Code Quality
