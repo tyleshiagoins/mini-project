@@ -2,12 +2,10 @@ name: ci project
 
 on:
   push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
-
+      
 jobs:
   ci-pipeline:
     runs-on: ubuntu-latest
@@ -24,17 +22,16 @@ jobs:
 
     - name: install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install --only-binary :all: pytest==8.0.0 flake8==7.0.0 pytest-cov==4.1.0
+        python -m pip install --only-binary=:all: --require-hashes -r task-tracker/requirements-lock.txt
 
     - name: linting standards
       run: flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
 
     - name: run tests
-      run: pytest --cov=greeting --cov-report=xml:coverage.xml --cov-report=term-missing --cov-fail-under=80 test_greeting.py
+      run: pytest --cov=greeting --cov=task-tracker --cov-report=xml:coverage.xml --cov-report=term-missing --cov-fail-under=80
 
     - name: build
-      run: python -m py_compile greeting.py
+      run: python -m compileall -q .
 
     - name: SonarCloud Scan
       uses: SonarSource/sonarqube-scan-action@299e4b793aaa83bf2aba7c9c14bedbb485688ec4
