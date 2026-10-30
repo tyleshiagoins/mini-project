@@ -1,6 +1,9 @@
+import os
+
 from flask import Flask
 
 app = Flask(__name__)
+app.config["APP_ENV"] = os.getenv("APP_ENV", "development")
 
 
 @app.route("/")

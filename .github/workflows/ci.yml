@@ -5,7 +5,10 @@ on:
   pull_request:
     branches:
       - main
-      
+
+permissions:
+  contents: read
+
 jobs:
   ci-pipeline:
     runs-on: ubuntu-latest
@@ -34,6 +37,91 @@ jobs:
       run: python -m compileall -q .
 
     - name: SonarCloud Scan
+      if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
       uses: SonarSource/sonarqube-scan-action@299e4b793aaa83bf2aba7c9c14bedbb485688ec4
+      with:
+        args: >
+          -Dsonar.qualitygate.wait=true
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    - name: package application
+      run: git archive --format=zip --output=task-tracker.zip HEAD:task-tracker
+
+    - name: save application package
+      uses: actions/upload-artifact@v4
+      with:
+        name: task-tracker-package
+        path: task-tracker.zip
+        if-no-files-found: error
+
+  deploy-staging:
+    needs: ci-pipeline
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: write
+
+    concurrency:
+      group: staging-deployment
+      cancel-in-progress: false
+
+    steps:
+    - name: retrieve application package
+      uses: actions/download-artifact@v4
+      with:
+        name: task-tracker-package
+
+    - name: publish application package
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+      run: |
+        release_tag="staging-${GITHUB_SHA}"
+
+        if gh release view "$release_tag" > /dev/null 2>&1; then
+          gh release upload "$release_tag" task-tracker.zip --clobber
+        else
+          gh release create "$release_tag" task-tracker.zip \
+            --target "$GITHUB_SHA" \
+            --title "Staging build ${GITHUB_SHA}" \
+            --notes "Application package for automated staging deployment." \
+            --prerelease
+        fi
+
+    - name: deploy to staging
+      env:
+        RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+      run: |
+        curl --fail --silent --show-error --max-time 60 \
+          --request POST \
+          "${RENDER_DEPLOY_HOOK}&ref=${GITHUB_SHA}" \
+          --output /dev/null
+
+    - name: run smoke tests
+      env:
+        STAGING_URL: ${{ vars.STAGING_URL }}
+      run: |
+        staging_address="${STAGING_URL%/}"
+
+        for attempt in {1..30}; do
+          deployed_version=$(curl --fail --silent --max-time 10 \
+            "${staging_address}/static/deployment-version.txt?build=${GITHUB_SHA}" || true)
+
+          if [ "$deployed_version" = "$GITHUB_SHA" ]; then
+            curl --fail --silent --show-error --max-time 60 \
+              "$staging_address/" --output staging-home.html
+
+            grep -q "Task Tracker" staging-home.html
+            echo "Tests passed."
+            exit 0
+          fi
+
+          echo "Waiting for deployment."
+          sleep 10
+        done
+
+        echo "Tests failed."
+        exit 1
