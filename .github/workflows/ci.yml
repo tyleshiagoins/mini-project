@@ -37,7 +37,7 @@ jobs:
       run: python -m compileall -q .
 
     - name: SonarCloud Scan
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
       uses: SonarSource/sonarqube-scan-action@299e4b793aaa83bf2aba7c9c14bedbb485688ec4
       with:
         args: >
