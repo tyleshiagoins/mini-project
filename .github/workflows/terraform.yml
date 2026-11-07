@@ -1,4 +1,5 @@
-name: Terraform Infrastructure
+
+name: terraform infrastructure
 
 on:
   pull_request:
@@ -8,8 +9,19 @@ on:
       - "infrastructure/**"
       - ".github/workflows/terraform.yml"
 
+  push:
+    branches:
+      - main
+    paths:
+      - "infrastructure/**"
+      - ".github/workflows/terraform.yml"
+
 permissions:
   contents: read
+
+concurrency:
+  group: terraform-staging
+  cancel-in-progress: false
 
 jobs:
   terraform:
@@ -20,26 +32,33 @@ jobs:
         working-directory: infrastructure
 
     steps:
-      - name: Checkout repository
+      - name: checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd 
+      - name: setup terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: "1.17.0"
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
-      - name: Initialize Terraform
+      - name: initialize terraform
         run: terraform init
 
-      - name: Check formatting
+      - name: check formatting
         run: terraform fmt -check
 
-      - name: Validate configuration
+      - name: validate configuration
         run: terraform validate
 
-      - name: Check infrastructure changes
+      - name: check infrastructure changes
         run: terraform plan
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_OWNER_ID: ${{ vars.RENDER_OWNER_ID }}
+
+      - name: apply infrastructure changes
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: terraform apply -auto-approve
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_OWNER_ID: ${{ vars.RENDER_OWNER_ID }}
