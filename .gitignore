@@ -5,3 +5,13 @@ __pycache__/
 coverage.xml
 .venv/
 venv/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+provider-schema.json
+**/tfplan
+
+**/state-backup.json
+**/terraform.tfstate.backup-local
