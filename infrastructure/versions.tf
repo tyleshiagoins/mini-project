@@ -8,10 +8,10 @@ terraform {
     }
   }
   cloud {
-  organization = "dcccd_assignments"
+    organization = "dcccd_assignments"
 
-  workspaces {
-    name = "mini-project-staging"
-  }
+    workspaces {
+      name = "mini-project-staging"
+    }
   }
 }

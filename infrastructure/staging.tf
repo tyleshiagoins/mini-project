@@ -26,8 +26,8 @@ resource "render_web_service" "staging" {
 
   lifecycle {
     ignore_changes = [
-    maintenance_mode,
-    custom_domains
+      maintenance_mode,
+      custom_domains
     ]
   }
 }
