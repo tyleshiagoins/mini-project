@@ -66,7 +66,7 @@ def home():
             <h1>Task Tracker</h1>
 
             <input type="text" id="taskInput" placeholder="Enter a task">
-            <button type="button" onclick="addTask()">Add Task</button>
+            <button type="button" onclick="addTask()">Add task</button>
 
             <h2>Task List</h2>
             <ul id="taskList"></ul>
