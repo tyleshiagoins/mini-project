@@ -1,0 +1,116 @@
+name: Blue-green deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Choose what to do
+        required: true
+        type: choice
+        options:
+          - Prepare Green
+          - Switch to Green
+          - Roll back to Blue
+      commit:
+        description: Full staging commit ID for preparing or switching to Green
+        required: false
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: task-tracker-blue-green
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ACTION: ${{ inputs.action }}
+      COMMIT: ${{ inputs.commit }}
+      STAGING_URL: ${{ vars.STAGING_URL }}
+      GREEN_URL: ${{ vars.GREEN_URL }}
+      ROUTER_URL: ${{ vars.ROUTER_URL }}
+
+    steps:
+      - name: Verify the staging version
+        if: inputs.action != 'Roll back to Blue'
+        run: |
+          if [[ ! "$COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Enter the full 40-character staging commit ID."
+            exit 1
+          fi
+
+          staging_version=$(curl --fail --silent --show-error --max-time 75 \
+            "${STAGING_URL%/}/static/deployment-version.txt")
+
+          if [[ "$staging_version" != "$COMMIT" ]]; then
+            echo "Staging is not running the selected commit."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error --max-time 30 \
+            "${STAGING_URL%/}/" --output staging.html
+          grep -q "Task Tracker" staging.html
+
+      - name: Deploy to Green while Blue is live
+        if: inputs.action == 'Prepare Green'
+        env:
+          GREEN_DEPLOY_HOOK: ${{ secrets.GREEN_DEPLOY_HOOK }}
+        run: |
+          curl --fail --silent --show-error --max-time 90 \
+            --dump-header router-headers.txt --output /dev/null "${ROUTER_URL%/}/"
+
+          if ! grep -Eqi '^x-deployment-color: blue[[:space:]]*$' router-headers.txt; then
+            echo "Blue must be serving traffic before deploying to Green."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error --max-time 30 \
+            --request POST "${GREEN_DEPLOY_HOOK}&ref=${COMMIT}" --output /dev/null
+          echo "Render accepted the Green deployment request."
+
+      - name: Check the version and page on Green
+        if: inputs.action != 'Roll back to Blue'
+        run: |
+          for attempt in {1..30}; do
+            green_version=$(curl --fail --silent --max-time 10 \
+              "${GREEN_URL%/}/static/deployment-version.txt" || true)
+
+            if [[ "$green_version" == "$COMMIT" ]]; then
+              curl --fail --silent --show-error --max-time 30 \
+                "${GREEN_URL%/}/" --output green.html
+              grep -q "Task Tracker" green.html
+              echo "Green passed its checks for commit $COMMIT."
+              exit 0
+            fi
+
+            echo "Waiting for Green to serve the selected version ($attempt/30)."
+            sleep 10
+          done
+
+          echo "Green did not serve the selected version in time."
+          exit 1
+
+      - name: Switch traffic and verify the public link
+        if: inputs.action != 'Prepare Green'
+        env:
+          ROUTER_TOKEN: ${{ secrets.ROUTER_TOKEN }}
+        run: |
+          if [[ "$ACTION" == "Roll back to Blue" ]]; then
+            color=blue
+          else
+            color=green
+          fi
+
+          curl --fail --silent --show-error --max-time 90 \
+            --request POST --header "Authorization: Bearer $ROUTER_TOKEN" \
+            "${ROUTER_URL%/}/switch/$color" --output /dev/null
+
+          curl --fail --silent --show-error --max-time 90 \
+            --dump-header router-headers.txt --output router.html "${ROUTER_URL%/}/"
+          grep -Eqi "^x-deployment-color: $color[[:space:]]*$" router-headers.txt
+          grep -q "Task Tracker" router.html
+          echo "The public link is serving $color."
