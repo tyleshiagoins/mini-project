@@ -10,7 +10,7 @@ on:
         options:
           - Prepare Green
           - Switch to Green
-          - Roll back to Blue
+          - Switch to Blue
       commit:
         description: Full staging commit ID for preparing or switching to Green
         required: false
@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Verify the staging version
-        if: inputs.action != 'Roll back to Blue'
+        if: inputs.action != 'Switch to Blue'
         run: |
           if [[ ! "$COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
             echo "Enter the full 40-character staging commit ID."
@@ -73,7 +73,7 @@ jobs:
           echo "Render accepted the Green deployment request."
 
       - name: Check the version and page on Green
-        if: inputs.action != 'Roll back to Blue'
+        if: inputs.action != 'Switch to Blue'
         run: |
           for attempt in {1..30}; do
             green_version=$(curl --fail --silent --max-time 10 \
@@ -99,7 +99,7 @@ jobs:
         env:
           ROUTER_TOKEN: ${{ secrets.ROUTER_TOKEN }}
         run: |
-          if [[ "$ACTION" == "Roll back to Blue" ]]; then
+          if [[ "$ACTION" == "Switch to Blue" ]]; then
             color=blue
           else
             color=green
