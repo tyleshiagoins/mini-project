@@ -41,9 +41,14 @@ def home():
                 color: #555;
             }
 
-            input {
+            #taskInput {
                 padding: 10px;
                 width: 65%;
+            }
+
+            .edit-input {
+                padding: 10px;
+                max-width: 60%;
             }
 
             button {
@@ -55,7 +60,7 @@ def home():
                 margin-top: 15px;
             }
 
-            .delete-button {
+            .task-button {
                 margin-left: 10px;
             }
         </style>
@@ -65,96 +70,141 @@ def home():
         <main class="container">
             <h1>Task Tracker</h1>
 
-            <input type="text" id="taskInput" placeholder="Enter a task">
-            <button type="button" onclick="addTask()">Add task</button>
+            <form id="task_form">
+                <input type="text" id="taskInput" placeholder="Enter a task" aria-label="Task description">
+                <button type="submit">Add task</button>
+            </form>
 
-            <h2>Task List</h2>
+            <h2>Task list</h2>
             <ul id="taskList"></ul>
             <p id="emptyMessage">No tasks added yet.</p>
         </main>
 
         <script>
-            // load previously saved tasks when the page opens
-            window.onload = function() {
-                const savedTasks = JSON.parse(
-                    localStorage.getItem("tasks")
-                ) || [];
+            const task_list = document.getElementById("taskList");
+            const task_input = document.getElementById("taskInput");
+            const task_form = document.getElementById("task_form");
 
-                for (const taskDescription of savedTasks) {
-                    displayTask(taskDescription);
+            task_form.onsubmit = function(event) {
+                event.preventDefault();
+                addTask();
+            };
+
+            window.onload = function() {
+                const saved_tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+                for (const description of saved_tasks) {
+                    display_task(description);
                 }
 
                 updateEmptyMessage();
             };
 
-            // add a task
             function addTask() {
-                const taskInput = document.getElementById("taskInput");
-                const taskDescription = taskInput.value.trim();
+                const description = task_input.value.trim();
 
-                if (taskDescription === "") {
+                if (description === "") {
                     return;
                 }
 
-                displayTask(taskDescription);
-                saveTasks();
-
-                taskInput.value = "";
+                display_task(description);
+                save_tasks();
+                task_input.value = "";
+                task_input.focus();
             }
 
-            // display task and delete
-            function displayTask(taskDescription) {
-                const taskList = document.getElementById("taskList");
-                const newTask = document.createElement("li");
+            function display_task(description) {
+                const task = document.createElement("li");
 
-                const taskText = document.createElement("span");
-                taskText.textContent = taskDescription;
+                const task_text = document.createElement("span");
+                task_text.textContent = description;
 
-                const deleteButton = document.createElement("button");
-                deleteButton.textContent = "Delete";
-                deleteButton.className = "delete-button";
+                const edit_input = document.createElement("input");
+                edit_input.type = "text";
+                edit_input.className = "edit-input";
+                edit_input.setAttribute("aria-label", "Edit task description");
+                edit_input.required = true;
+                edit_input.hidden = true;
 
-                deleteButton.onclick = function() {
-                    newTask.remove();
-                    saveTasks();
+                const edit_button = document.createElement("button");
+                edit_button.type = "button";
+                edit_button.textContent = "edit";
+                edit_button.className = "task-button";
+
+                function close_editor() {
+                    edit_input.hidden = true;
+                    task_text.hidden = false;
+                    edit_button.textContent = "edit";
+                    edit_button.focus();
+                }
+
+                function save_edit() {
+                    const new_description = edit_input.value.trim();
+
+                    if (new_description === "") {
+                        edit_input.value = "";
+                        edit_input.reportValidity();
+                        edit_input.focus();
+                        return;
+                    }
+
+                    task_text.textContent = new_description;
+                    save_tasks();
+                    close_editor();
+                }
+
+                edit_button.onclick = function() {
+                    if (edit_input.hidden) {
+                        edit_input.value = task_text.textContent;
+                        edit_input.hidden = false;
+                        task_text.hidden = true;
+                        edit_button.textContent = "save";
+                        edit_input.focus();
+                        edit_input.select();
+                    } else {
+                        save_edit();
+                    }
                 };
 
-                newTask.appendChild(taskText);
-                newTask.appendChild(deleteButton);
-                taskList.appendChild(newTask);
+                edit_input.onkeydown = function(event) {
+                    if (event.key === "Enter") {
+                        event.preventDefault();
+                        save_edit();
+                    }
 
-                updateEmptyMessage();
+                    if (event.key === "Escape") {
+                        close_editor();
+                    }
+                };
+
+                const delete_button = document.createElement("button");
+                delete_button.type = "button";
+                delete_button.textContent = "delete";
+                delete_button.className = "task-button";
+
+                delete_button.onclick = function() {
+                    task.remove();
+                    save_tasks();
+                };
+
+                task.append(task_text, edit_input, edit_button, delete_button);
+                task_list.appendChild(task);
             }
 
-            // remember input
-            function saveTasks() {
-                const taskList = document.getElementById("taskList");
-                const savedTasks = [];
+            function save_tasks() {
+                const tasks = [];
 
-                for (const task of taskList.children) {
-                    savedTasks.push(
-                        task.querySelector("span").textContent
-                    );
+                for (const task of task_list.children) {
+                    tasks.push(task.querySelector("span").textContent);
                 }
 
-                localStorage.setItem(
-                    "tasks",
-                    JSON.stringify(savedTasks)
-                );
-
+                localStorage.setItem("tasks", JSON.stringify(tasks));
                 updateEmptyMessage();
             }
 
-            //  empty message when there's no tasks.
             function updateEmptyMessage() {
-                const taskList = document.getElementById("taskList");
-                const emptyMessage = document.getElementById("emptyMessage");
-
-                if (taskList.children.length === 0) {
-                    emptyMessage.hidden = false;
-                } else {
-                    emptyMessage.hidden = true;
-                }
+                const empty_message = document.getElementById("emptyMessage");
+                empty_message.hidden = task_list.children.length > 0;
             }
         </script>
     </body>
