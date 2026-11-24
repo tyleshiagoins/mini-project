@@ -72,3 +72,21 @@ def test_router_switches_to_green_and_back(monkeypatch):
     assert client.post("/switch/blue", headers=headers).status_code == 200
     assert client.get("/").headers["x-deployment-color"] == "blue"
     open_page.assert_called_with(f"{blue_url}/", timeout=60)
+
+# health check tests
+
+
+def test_health_live():
+    client = app.test_client()
+    response = client.get("/health/live")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "alive"
+
+
+def test_health_ready():
+    client = app.test_client()
+    response = client.get("/health/ready")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "ready"

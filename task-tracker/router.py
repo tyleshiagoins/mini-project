@@ -11,6 +11,8 @@ app.config["active_color"] = "blue"
 
 @app.get("/")
 @app.get("/static/deployment-version.txt")
+@app.get("/health/live")
+@app.get("/health/ready")
 def show_task_tracker():
     color = app.config["active_color"]
     service_url = os.environ[f"{color.upper()}_URL"].rstrip("/")
