@@ -6,6 +6,16 @@ app = Flask(__name__)
 app.config["APP_ENV"] = os.getenv("APP_ENV", "development")
 
 
+@app.route("/health/live")
+def health_live():
+    return {"status": "alive"}, 200
+
+
+@app.route("/health/ready")
+def health_ready():
+    return {"status": "ready"}, 200
+
+
 @app.route("/")
 def home():
     return """

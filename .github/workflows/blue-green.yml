@@ -1,18 +1,18 @@
-name: Blue-green deployment
+name: blue-green deployment
 
 on:
   workflow_dispatch:
     inputs:
       action:
-        description: Choose what to do
+        description: choose what to do
         required: true
         type: choice
         options:
-          - Prepare Green
-          - Switch to Green
-          - Switch to Blue
+          - prepare green
+          - switch to green
+          - switch to blue
       commit:
-        description: Full staging commit ID for preparing or switching to Green
+        description: full staging commit id for preparing or switching to green
         required: false
         type: string
 
@@ -28,89 +28,128 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      ACTION: ${{ inputs.action }}
-      COMMIT: ${{ inputs.commit }}
-      STAGING_URL: ${{ vars.STAGING_URL }}
-      GREEN_URL: ${{ vars.GREEN_URL }}
-      ROUTER_URL: ${{ vars.ROUTER_URL }}
+      action: ${{ inputs.action }}
+      commit: ${{ inputs.commit }}
+      staging_url: ${{ vars.STAGING_URL }}
+      green_url: ${{ vars.GREEN_URL }}
+      router_url: ${{ vars.ROUTER_URL }}
 
     steps:
-      - name: Verify the staging version
-        if: inputs.action != 'Switch to Blue'
+      - name: verify the staging version
+        if: inputs.action != 'switch to blue'
         run: |
-          if [[ ! "$COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "Enter the full 40-character staging commit ID."
+          if [[ ! "$commit" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "enter the full 40-character staging commit id."
             exit 1
           fi
 
           staging_version=$(curl --fail --silent --show-error --max-time 75 \
-            "${STAGING_URL%/}/static/deployment-version.txt")
+            "${staging_url%/}/static/deployment-version.txt")
 
-          if [[ "$staging_version" != "$COMMIT" ]]; then
-            echo "Staging is not running the selected commit."
+          if [[ "$staging_version" != "$commit" ]]; then
+            echo "staging is not running the selected commit."
             exit 1
           fi
 
           curl --fail --silent --show-error --max-time 30 \
-            "${STAGING_URL%/}/" --output staging.html
+            "${staging_url%/}/" --output staging.html
           grep -q "Task Tracker" staging.html
 
-      - name: Deploy to Green while Blue is live
-        if: inputs.action == 'Prepare Green'
+      - name: check staging health
+        if: inputs.action != 'switch to blue'
+        run: |
+          curl --fail --show-error --max-time 75 \
+            "${staging_url%/}/health/live"
+
+          curl --fail --show-error --max-time 75 \
+            "${staging_url%/}/health/ready"
+
+          echo "staging health checks passed."
+
+      - name: deploy to green while blue is live
+        if: inputs.action == 'prepare green'
         env:
-          GREEN_DEPLOY_HOOK: ${{ secrets.GREEN_DEPLOY_HOOK }}
+          green_deploy_hook: ${{ secrets.GREEN_DEPLOY_HOOK }}
         run: |
           curl --fail --silent --show-error --max-time 90 \
-            --dump-header router-headers.txt --output /dev/null "${ROUTER_URL%/}/"
+            --dump-header router-headers.txt --output /dev/null "${router_url%/}/"
 
           if ! grep -Eqi '^x-deployment-color: blue[[:space:]]*$' router-headers.txt; then
-            echo "Blue must be serving traffic before deploying to Green."
+            echo "blue must be serving traffic before deploying to green."
             exit 1
           fi
 
           curl --fail --silent --show-error --max-time 30 \
-            --request POST "${GREEN_DEPLOY_HOOK}&ref=${COMMIT}" --output /dev/null
-          echo "Render accepted the Green deployment request."
+            --request POST "${green_deploy_hook}&ref=${commit}" --output /dev/null
 
-      - name: Check the version and page on Green
-        if: inputs.action != 'Switch to Blue'
+          echo "green deployment request accepted."
+
+      - name: check the version and page on green
+        if: inputs.action != 'switch to blue'
         run: |
           for attempt in {1..30}; do
             green_version=$(curl --fail --silent --max-time 10 \
-              "${GREEN_URL%/}/static/deployment-version.txt" || true)
+              "${green_url%/}/static/deployment-version.txt" || true)
 
-            if [[ "$green_version" == "$COMMIT" ]]; then
+            if [[ "$green_version" == "$commit" ]]; then
               curl --fail --silent --show-error --max-time 30 \
-                "${GREEN_URL%/}/" --output green.html
+                "${green_url%/}/" --output green.html
+
               grep -q "Task Tracker" green.html
-              echo "Green passed its checks for commit $COMMIT."
+
+              echo "green passed its checks for commit $commit."
               exit 0
             fi
 
-            echo "Waiting for Green to serve the selected version ($attempt/30)."
+            echo "waiting for green to serve the selected version ($attempt/30)."
             sleep 10
           done
 
-          echo "Green did not serve the selected version in time."
+          echo "green did not serve the selected version in time."
           exit 1
 
-      - name: Switch traffic and verify the public link
-        if: inputs.action != 'Prepare Green'
-        env:
-          ROUTER_TOKEN: ${{ secrets.ROUTER_TOKEN }}
+      - name: check green health
+        if: inputs.action != 'switch to blue'
         run: |
-          if [[ "$ACTION" == "Switch to Blue" ]]; then
+          curl --fail --show-error --max-time 75 \
+            "${green_url%/}/health/live"
+
+          curl --fail --show-error --max-time 75 \
+            "${green_url%/}/health/ready"
+
+          echo "green health checks passed."
+
+      - name: switch traffic and verify the public link
+        if: inputs.action != 'prepare green'
+        env:
+          router_token: ${{ secrets.ROUTER_TOKEN }}
+        run: |
+          if [[ "$action" == "switch to blue" ]]; then
             color=blue
           else
             color=green
           fi
 
           curl --fail --silent --show-error --max-time 90 \
-            --request POST --header "Authorization: Bearer $ROUTER_TOKEN" \
-            "${ROUTER_URL%/}/switch/$color" --output /dev/null
+            --request POST --header "Authorization: Bearer $router_token" \
+            "${router_url%/}/switch/$color" --output /dev/null
 
           curl --fail --silent --show-error --max-time 90 \
-            --dump-header router-headers.txt --output router.html "${ROUTER_URL%/}/"
+            --dump-header router-headers.txt --output router.html "${router_url%/}/"
+
           grep -Eqi "^x-deployment-color: $color[[:space:]]*$" router-headers.txt
           grep -q "Task Tracker" router.html
-          echo "The public link is serving $color."
+
+          echo "the public link is serving $color."
+
+      - name: run production smoke tests
+        if: inputs.action != 'prepare green'
+        run: |
+          curl --fail --show-error --max-time 75 \
+            "${router_url%/}/health/live"
+
+          curl --fail --show-error --max-time 75 \
+            "${router_url%/}/health/ready"
+
+          echo "production smoke tests passed."
+          
